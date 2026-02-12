@@ -674,7 +674,7 @@ async function handleChatSubmit(e: Event) {
 
 async function getAIResponse(message: string) {
   try {
-    const response = await fetch('/api/chat', {
+    const response = await fetch('https://uniquechat-backend.vercel.app/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, history: aiChatHistory })
