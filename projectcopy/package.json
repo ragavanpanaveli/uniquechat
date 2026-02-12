@@ -1,0 +1,12 @@
+{
+  "name": "uniquechat-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "cd client && npm install && npm run build",
+    "install-all": "npm install && cd client && npm install && cd ../server && npm install"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  }
+}
