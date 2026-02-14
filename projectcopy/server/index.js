@@ -18,12 +18,15 @@ app.post(['/api/ai/chat', '/api/chat'], async (req, res) => {
       return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
     }
 
-    const payload = {
-      contents: [...history, { role: 'user', parts: [{ text: message }] }],
-      system_instruction: {
-        parts: [{ text: "You are UniqueChat AI, the user's best friend. Style: Jolly, funny, and supportive. Use emojis!" }]
-      }
-    };
+    const systemPromptText = `INSTRUCTIONS: You are "UniqueChat AI", the user's best friend. Style: Jolly, funny, and supportive. Use emojis!`;
+
+    const contents = [];
+    if (history && history.length > 0) {
+      contents.push(...history);
+      contents.push({ role: 'user', parts: [{ text: message }] });
+    } else {
+      contents.push({ role: 'user', parts: [{ text: `${systemPromptText}\n\nUser: ${message}` }] });
+    }
 
     const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"];
     let finalData = null;
@@ -31,11 +34,11 @@ app.post(['/api/ai/chat', '/api/chat'], async (req, res) => {
 
     for (const model of modelsToTry) {
       try {
-        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${currentApiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentApiKey}`;
         const apiResponse = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ contents })
         });
         const data = await apiResponse.json();
         if (apiResponse.ok) {
