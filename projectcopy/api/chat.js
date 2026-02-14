@@ -1,12 +1,9 @@
-const MODEL_NAME = "gemini-1.5-flash";
-
 export default async function handler(req, res) {
-    // 1. ROBUST CORS (Allow-Origin: * is fine as long as Credentials is not true)
+    // 1. ROBUST CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    // 2. Handle OPTIONS (Pre-flight check)
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
@@ -21,18 +18,10 @@ export default async function handler(req, res) {
         const currentApiKey = (process.env.GEMINI_API_KEY || '').trim();
 
         if (!currentApiKey) {
-            console.error('API Key Missing');
-            return res.status(500).json({ error: 'GEMINI_API_KEY is not set in Vercel settings for this project' });
+            return res.status(500).json({ error: 'GEMINI_API_KEY is missing in Vercel settings' });
         }
 
-        if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
-        }
-
-        const systemPromptText = `You are "UniqueChat AI", the user's best friend. 
-        Style: Jolly, funny, and supportive. 
-        Language: English, Tamil, and Thanglish. 
-        Use plenty of emojis!`;
+        const systemPromptText = `You are "UniqueChat AI", the user's best friend. Style: Jolly, funny, and supportive. Use emojis!`;
 
         const payload = {
             contents: [],
@@ -41,25 +30,25 @@ export default async function handler(req, res) {
             }
         };
 
-        // Ensure roles alternate correctly in history
         if (history && history.length > 0) {
             payload.contents.push(...history);
         }
 
-        // Current message
         payload.contents.push({
             role: 'user',
             parts: [{ text: message }]
         });
 
-        const modelsToTry = ["gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-2.0-flash"];
+        // Loop through multiple possible model names to find the best working one
+        const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"];
         let lastError = null;
         let finalData = null;
 
         for (const model of modelsToTry) {
             try {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentApiKey}`;
-                console.log(`Trying model: ${model}...`);
+                // Using stable v1 endpoint
+                const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${currentApiKey}`;
+                console.log(`Trying Gemini model: ${model}...`);
 
                 const apiResponse = await fetch(apiUrl, {
                     method: 'POST',
@@ -75,9 +64,8 @@ export default async function handler(req, res) {
                 } else {
                     console.error(`Model ${model} failed:`, data.error?.message);
                     lastError = data.error;
-                    // If it's a quota error, stop immediately as other models will likely fail too
                     if (data.error?.message?.toLowerCase().includes('quota')) break;
-                    // Otherwise, try the next model
+                    if (data.error?.message?.toLowerCase().includes('key')) break;
                 }
             } catch (e) {
                 console.error(`Fetch error for ${model}:`, e);
@@ -86,12 +74,12 @@ export default async function handler(req, res) {
 
         if (!finalData) {
             return res.status(500).json({
-                error: lastError?.message || 'All AI models failed to respond',
+                error: lastError?.message || 'All AI models failed. Please check your API key and Vercel settings.',
                 details: lastError
             });
         }
 
-        const aiText = finalData.candidates?.[0]?.content?.parts?.[0]?.text || "Machi, small error. Try again!";
+        const aiText = finalData.candidates?.[0]?.content?.parts?.[0]?.text || "Machi, enna solrathunney theriyala. Try again!";
         res.json({ text: aiText });
 
     } catch (error) {
