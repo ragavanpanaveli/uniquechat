@@ -1,4 +1,4 @@
-const MODEL_NAME = "gemini-1.5-flash";
+const MODEL_NAME = "gemini-1.5-flash-latest";
 
 export default async function handler(req, res) {
     // 1. ROBUST CORS (Allow-Origin: * is fine as long as Credentials is not true)
