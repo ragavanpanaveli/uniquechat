@@ -18,7 +18,7 @@ app.post(['/api/chat', '/api/ai/chat'], async (req, res) => {
 
     const contents = [...history, { role: 'user', parts: [{ text: `Instructions: Friendly Best Friend. Use emojis.\n\nUser: ${message}` }] }];
 
-    const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest"];
+    const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
     let finalData = null;
     let lastError = null;
 
