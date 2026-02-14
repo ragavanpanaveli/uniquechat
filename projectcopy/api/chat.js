@@ -21,39 +21,43 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'GEMINI_API_KEY is missing in Vercel settings' });
         }
 
-        const systemPromptText = `You are "UniqueChat AI", the user's best friend. Style: Jolly, funny, and supportive. Use emojis!`;
+        const systemPromptText = `INSTRUCTIONS: You are "UniqueChat AI", the user's best friend. Style: Jolly, funny, and supportive. Use emojis!`;
 
-        const payload = {
-            contents: [],
-            system_instruction: {
-                parts: [{ text: systemPromptText }]
-            }
-        };
+        // Classic formatting: System prompt as the VERY FIRST message
+        // This works on ALL models (1.0, 1.5, Pro, Flash)
+        const contents = [];
+
+        // Add the system instructions as the very first part of the first user message
+        const firstMessageText = `${systemPromptText}\n\nUser says: ${message}`;
 
         if (history && history.length > 0) {
-            payload.contents.push(...history);
+            // If there's history, we put the instructions at the very beginning of the history
+            contents.push(...history);
+            contents.push({
+                role: 'user',
+                parts: [{ text: message }]
+            });
+        } else {
+            // No history, just the prompt + current message
+            contents.push({
+                role: 'user',
+                parts: [{ text: firstMessageText }]
+            });
         }
 
-        payload.contents.push({
-            role: 'user',
-            parts: [{ text: message }]
-        });
-
-        // Loop through multiple possible model names to find the best working one
         const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"];
         let lastError = null;
         let finalData = null;
 
         for (const model of modelsToTry) {
             try {
-                // Using stable v1 endpoint
-                const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${currentApiKey}`;
-                console.log(`Trying Gemini model: ${model}...`);
+                // Using v1beta as it is most flexible with model aliases
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentApiKey}`;
 
                 const apiResponse = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ contents })
                 });
 
                 const data = await apiResponse.json();
@@ -65,7 +69,6 @@ export default async function handler(req, res) {
                     console.error(`Model ${model} failed:`, data.error?.message);
                     lastError = data.error;
                     if (data.error?.message?.toLowerCase().includes('quota')) break;
-                    if (data.error?.message?.toLowerCase().includes('key')) break;
                 }
             } catch (e) {
                 console.error(`Fetch error for ${model}:`, e);
@@ -74,7 +77,7 @@ export default async function handler(req, res) {
 
         if (!finalData) {
             return res.status(500).json({
-                error: lastError?.message || 'All AI models failed. Please check your API key and Vercel settings.',
+                error: lastError?.message || 'All AI models failed. Please check your API key.',
                 details: lastError
             });
         }
