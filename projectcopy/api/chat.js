@@ -1,19 +1,19 @@
 const MODEL_NAME = "gemini-1.5-flash";
 
 export default async function handler(req, res) {
-    // 1. ROBUST CORS HEADERS (Required for Vercel)
+    // 1. ROBUST CORS (Allow-Origin: * is fine as long as Credentials is not true)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    // 2. Handle the "Pre-flight" request (required by browsers for POST requests)
+    // 2. Handle OPTIONS (Pre-flight check)
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
     }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed. Please use POST.' });
+        return res.status(405).json({ error: 'Please use POST request' });
     }
 
     try {
@@ -21,17 +21,19 @@ export default async function handler(req, res) {
         const currentApiKey = (process.env.GEMINI_API_KEY || '').trim();
 
         if (!currentApiKey) {
-            console.error('AI Request Failed: Missing GEMINI_API_KEY');
-            return res.status(500).json({ error: 'GEMINI_API_KEY is missing in Vercel settings' });
+            console.error('API Key Missing');
+            return res.status(500).json({ error: 'GEMINI_API_KEY is not set in Vercel settings for this project' });
         }
 
-        const systemPromptText = `You are now "UniqueChat AI", the user's absolute best friend. 
-        PERSONALITY: Jolly, extremely friendly, empathetic, and emotional. Talk like a close human friend.
-        EMOTION HANDLING: If the user is happy, celebrate with them. If the user is sad, motivate them, be supportive, and stay positive.
-        SAFETY: NEVER discuss 18+ or adult content.
-        LANGUAGE & STYLE: Reply in English, Tamil, or Thanglish based on user's input. Use emojis and friendly slang.`;
+        if (!message) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
 
-        // Properly format the request for Google Gemini API
+        const systemPromptText = `You are "UniqueChat AI", the user's best friend. 
+        Style: Jolly, funny, and supportive. 
+        Language: English, Tamil, and Thanglish. 
+        Use plenty of emojis!`;
+
         const payload = {
             contents: [],
             system_instruction: {
@@ -39,12 +41,12 @@ export default async function handler(req, res) {
             }
         };
 
-        // Add history, ensuring roles alternate correctly
+        // Ensure roles alternate correctly in history
         if (history && history.length > 0) {
             payload.contents.push(...history);
         }
 
-        // Add the current user message
+        // Current message
         payload.contents.push({
             role: 'user',
             parts: [{ text: message }]
@@ -52,6 +54,7 @@ export default async function handler(req, res) {
 
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${currentApiKey}`;
 
+        console.log('Requesting Gemini API...');
         const apiResponse = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -61,17 +64,18 @@ export default async function handler(req, res) {
         const data = await apiResponse.json();
 
         if (!apiResponse.ok) {
-            console.error('Google API Error:', JSON.stringify(data, null, 2));
+            console.error('Gemini Error:', data.error);
             return res.status(apiResponse.status).json({
                 error: data.error?.message || 'API Error',
-                details: data.error
+                code: data.error?.status
             });
         }
 
-        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sry, something went wrong. Try again?';
+        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Machi, small error. Try again!";
         res.json({ text: aiText });
+
     } catch (error) {
-        console.error('AI Chat Error:', error);
-        res.status(500).json({ error: error.message || 'Failed to get AI response' });
+        console.error('Server Internal Error:', error);
+        res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
 }
