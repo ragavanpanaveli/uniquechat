@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    // 1. ROBUST CORS
+    // 1. ROBUST CORS (Required for cross-domain requests)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -18,71 +18,60 @@ export default async function handler(req, res) {
         const currentApiKey = (process.env.GEMINI_API_KEY || '').trim();
 
         if (!currentApiKey) {
-            return res.status(500).json({ error: 'GEMINI_API_KEY is missing in Vercel settings' });
+            return res.status(500).json({ error: 'GEMINI_API_KEY is missing in Vercel settings for the BACKEND project.' });
         }
 
-        const systemPromptText = `INSTRUCTIONS: You are "UniqueChat AI", the user's best friend. Style: Jolly, funny, and supportive. Use emojis!`;
+        // Instructions for the AI - using a format that works on ALL API versions
+        const systemPromptText = "You are UniqueChat AI, a jolly best friend. Talk like a close human friend. Emphatetic and Jolly. Use emojis. Reply in Tamil/English/Thanglish.";
 
-        // Classic formatting: System prompt as the VERY FIRST message
-        // This works on ALL models (1.0, 1.5, Pro, Flash)
         const contents = [];
-
-        // Add the system instructions as the very first part of the first user message
-        const firstMessageText = `${systemPromptText}\n\nUser says: ${message}`;
-
         if (history && history.length > 0) {
-            // If there's history, we put the instructions at the very beginning of the history
+            // If they are in the middle of a chat, just append
             contents.push(...history);
-            contents.push({
-                role: 'user',
-                parts: [{ text: message }]
-            });
+            contents.push({ role: 'user', parts: [{ text: message }] });
         } else {
-            // No history, just the prompt + current message
-            contents.push({
-                role: 'user',
-                parts: [{ text: firstMessageText }]
-            });
+            // First message: include the personality instructions
+            contents.push({ role: 'user', parts: [{ text: `${systemPromptText}\n\nUser: ${message}` }] });
         }
 
-        const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"];
-        let lastError = null;
+        // Try both v1 and v1beta to ensure maximum compatibility
+        const endpoints = [
+            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${currentApiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentApiKey}`,
+            `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${currentApiKey}`
+        ];
+
         let finalData = null;
+        let lastError = null;
 
-        for (const model of modelsToTry) {
+        for (const url of endpoints) {
             try {
-                // Using v1beta as it is most flexible with model aliases
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentApiKey}`;
-
-                const apiResponse = await fetch(apiUrl, {
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents })
                 });
-
-                const data = await apiResponse.json();
-
-                if (apiResponse.ok) {
+                const data = await response.json();
+                if (response.ok) {
                     finalData = data;
                     break;
-                } else {
-                    console.error(`Model ${model} failed:`, data.error?.message);
-                    lastError = data.error;
-                    if (data.error?.message?.toLowerCase().includes('quota')) break;
                 }
+                lastError = data.error;
+                console.error(`Attempt failed with ${url.split('/')[4]}:`, data.error?.message);
             } catch (e) {
-                console.error(`Fetch error for ${model}:`, e);
+                console.error(`Fetch error:`, e.message);
+                lastError = e;
             }
         }
 
         if (!finalData) {
             return res.status(500).json({
-                error: lastError?.message || 'All AI models failed. Please check your API key.',
+                error: lastError?.message || 'Chatbot failed to respond. Please check your API key connectivity.',
                 details: lastError
             });
         }
 
-        const aiText = finalData.candidates?.[0]?.content?.parts?.[0]?.text || "Machi, enna solrathunney theriyala. Try again!";
+        const aiText = finalData.candidates?.[0]?.content?.parts?.[0]?.text || "Machi, something went wrong. Try again!";
         res.json({ text: aiText });
 
     } catch (error) {
