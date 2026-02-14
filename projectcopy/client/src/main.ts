@@ -315,7 +315,7 @@ function renderSidebarContent(view: string) {
   }
 
   createIcons({
-    icons: { Settings, LogOut, Send, MessageSquare, Users, Sparkles }
+    icons: { Settings, LogOut, Send, MessageSquare, Users, Sparkles, Volume2, Check, CheckCheck, ArrowLeft }
   })
 }
 
@@ -629,7 +629,7 @@ function subscribeToMessages(userId: string, friendId: string) {
           const iconEl = lastMsg.querySelector('.status-icon')
           if (iconEl) {
             iconEl.innerHTML = `<i data-lucide="check-check" style="width:14px; color: #3b82f6;"></i>`
-            createIcons({ icons: { CheckCheck } })
+            createIcons({ icons: { Settings, LogOut, Send, MessageSquare, Users, Sparkles, Volume2, Check, CheckCheck, ArrowLeft } })
           }
         }
       }
@@ -664,7 +664,7 @@ async function handleChatSubmit(e: Event) {
       <i data-lucide="volume-2" style="width:14px;height:14px;"></i>
     </button>`
     typingMsg.insertAdjacentHTML('beforeend', speakerHtml)
-    createIcons({ icons: { Volume2 } })
+    createIcons({ icons: { Settings, LogOut, Send, MessageSquare, Users, Sparkles, Volume2, Check, CheckCheck, ArrowLeft } })
 
   } else if (activeChatId) {
     appendMessage(content, 'sent')
@@ -737,7 +737,7 @@ function appendMessage(content: string, type: 'sent' | 'received', timestamp?: s
   messagesEl.scrollTop = messagesEl.scrollHeight
 
   if (type === 'sent') {
-    createIcons({ icons: { Check, CheckCheck } })
+    createIcons({ icons: { Settings, LogOut, Send, MessageSquare, Users, Sparkles, Volume2, Check, CheckCheck, ArrowLeft } })
   }
 
   return msgEl
