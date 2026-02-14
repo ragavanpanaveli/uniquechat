@@ -3,23 +3,9 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 
 dotenv.config();
-
 const app = express();
-const port = process.env.PORT || 3000;
-
-// Debug log for environment variables (safely)
-console.log('--- Server Debug ---');
-console.log('PORT:', port);
-console.log('GEMINI_API_KEY Length:', process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0);
-console.log('GEMINI_API_KEY starts with:', process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 5) : 'MISSING');
-console.log('--------------------');
-
 app.use(cors());
 app.use(express.json());
-
-// Trim the key to prevent whitespace errors
-// Standardized model name for the SDK
-const MODEL_NAME = "gemini-1.5-flash";
 
 app.get('/', (req, res) => res.send('Server is Live! Reach API at /api/chat'));
 
@@ -29,41 +15,49 @@ app.post(['/api/ai/chat', '/api/chat'], async (req, res) => {
     const currentApiKey = (process.env.GEMINI_API_KEY || '').trim();
 
     if (!currentApiKey) {
-      console.error('AI Request Failed: Missing GEMINI_API_KEY');
       return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
     }
 
     const payload = {
       contents: [...history, { role: 'user', parts: [{ text: message }] }],
       system_instruction: {
-        parts: [{ text: "You are UniqueChat AI, the user's best friend. Style: Jolly, funny, and supportive. Language: English, Tamil, and Thanglish. Use emojis!" }]
+        parts: [{ text: "You are UniqueChat AI, the user's best friend. Style: Jolly, funny, and supportive. Use emojis!" }]
       }
     };
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${currentApiKey}`;
+    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"];
+    let finalData = null;
+    let lastError = null;
 
-    const apiResponse = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await apiResponse.json();
-
-    if (!apiResponse.ok) {
-      console.error('Google API Error:', data);
-      return res.status(apiResponse.status).json({ error: data.error?.message || 'API Error' });
+    for (const model of modelsToTry) {
+      try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${currentApiKey}`;
+        const apiResponse = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await apiResponse.json();
+        if (apiResponse.ok) {
+          finalData = data;
+          break;
+        }
+        lastError = data.error;
+      } catch (e) {
+        console.error(`Local fetch error: ${e.message}`);
+      }
     }
 
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sry machi, small error. Try again?';
+    if (!finalData) {
+      return res.status(500).json({ error: lastError?.message || 'All AI models failed' });
+    }
+
+    const aiText = finalData.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from AI';
     res.json({ text: aiText });
   } catch (error) {
-    console.error('AI Chat Error:', error);
-    res.status(500).json({ error: error.message || 'Failed to get AI response' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
