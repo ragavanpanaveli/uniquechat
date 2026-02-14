@@ -19,7 +19,9 @@ app.use(express.json());
 
 // Trim the key to prevent whitespace errors
 // Standardized model name for the SDK
-const MODEL_NAME = "gemini-1.5-flash";
+const MODEL_NAME = "gemini-1.5-flash-latest";
+
+app.get('/', (req, res) => res.send('Server is Live! Reach API at /api/chat'));
 
 app.post(['/api/ai/chat', '/api/chat'], async (req, res) => {
   try {
