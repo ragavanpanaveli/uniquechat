@@ -676,21 +676,30 @@ async function getAIResponse(message: string) {
   try {
     const response = await fetch('https://uniquechat-backend.vercel.app/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ message, history: aiChatHistory })
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
-      return `AI Error: ${errorData.error || 'Failed to get response'}`
+      let errorMessage = 'Failed to get response';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        errorMessage = `HTTP Error ${response.status}`;
+      }
+      return `AI Error: ${errorMessage}`;
     }
 
     const data = await response.json()
     aiChatHistory.push({ role: 'user', parts: [{ text: message }] })
     aiChatHistory.push({ role: 'model', parts: [{ text: data.text }] })
     return data.text
-  } catch (error) {
-    return 'I am having trouble connecting to the AI server. Is it running? (Check terminal output for errors)'
+  } catch (error: any) {
+    console.error('Connection Error:', error);
+    return `Connection Error: Check if the backend is live. (Details: ${error.message})`;
   }
 }
 
