@@ -37,7 +37,7 @@ export default async function handler(req, res) {
          * We will loop through 3 most common model patterns 
          * and 2 API versions to find exactly what Google wants.
          */
-        const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+        const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
         const versions = ["v1", "v1beta"];
 
         let finalData = null;
