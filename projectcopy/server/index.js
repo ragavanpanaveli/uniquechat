@@ -7,9 +7,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => res.send('Server is Live! Reach API at /api/chat'));
+app.get('/', (req, res) => res.send('UniqueChat Backend is running!'));
 
-app.post(['/api/ai/chat', '/api/chat'], async (req, res) => {
+app.post(['/api/chat', '/api/ai/chat'], async (req, res) => {
   try {
     const { message, history = [] } = req.body;
     const currentApiKey = (process.env.GEMINI_API_KEY || '').trim();
@@ -18,49 +18,48 @@ app.post(['/api/ai/chat', '/api/chat'], async (req, res) => {
       return res.status(500).json({ error: 'GEMINI_API_KEY is missing' });
     }
 
-    const systemPromptText = `INSTRUCTIONS: You are "UniqueChat AI", the user's best friend. Style: Jolly, funny, and supportive. Use emojis!`;
-
     const contents = [];
-    if (history && history.length > 0) {
-      contents.push(...history);
-      contents.push({ role: 'user', parts: [{ text: message }] });
+    if (history.length > 0) {
+      contents.push(...history, { role: 'user', parts: [{ text: message }] });
     } else {
-      contents.push({ role: 'user', parts: [{ text: `${systemPromptText}\n\nUser: ${message}` }] });
+      contents.push({ role: 'user', parts: [{ text: `Instructions: Jolly best friend bot.\n\nUser: ${message}` }] });
     }
 
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.0-pro"];
+    const endpoints = [
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${currentApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${currentApiKey}`
+    ];
+
     let finalData = null;
     let lastError = null;
 
-    for (const model of modelsToTry) {
+    for (const url of endpoints) {
       try {
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${currentApiKey}`;
-        const apiResponse = await fetch(apiUrl, {
+        const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents })
         });
-        const data = await apiResponse.json();
-        if (apiResponse.ok) {
+        const data = await response.json();
+        if (response.ok) {
           finalData = data;
           break;
         }
         lastError = data.error;
       } catch (e) {
-        console.error(`Local fetch error: ${e.message}`);
+        console.error(e);
       }
     }
 
     if (!finalData) {
-      return res.status(500).json({ error: lastError?.message || 'All AI models failed' });
+      return res.status(500).json({ error: lastError?.message || 'AI error' });
     }
 
-    const aiText = finalData.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from AI';
-    res.json({ text: aiText });
+    res.json({ text: finalData.candidates?.[0]?.content?.parts?.[0]?.text || 'No response' });
   } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server live on ${PORT}`));
