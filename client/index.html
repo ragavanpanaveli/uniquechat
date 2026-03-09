@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniqueChat - Modern Messaging</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <!-- Auth Section -->
+    <div id="auth-section" class="auth-container">
+      <!-- Left Branding Panel -->
+      <div class="auth-left-panel">
+        <div class="auth-brand-badge">✨ AI-Powered</div>
+        <h2 class="auth-left-title">Chat Smarter<br>with <span class="auth-gradient-text">UniqueChat</span></h2>
+        <p class="auth-left-desc">Connect with friends, groups, and your personal AI assistant — all in one place.</p>
+        <div class="auth-features">
+          <div class="auth-feature-item">
+            <span class="auth-feature-icon">💬</span>
+            <span>Real-time messaging</span>
+          </div>
+          <div class="auth-feature-item">
+            <span class="auth-feature-icon">🤖</span>
+            <span>Gemini AI Assistant</span>
+          </div>
+          <div class="auth-feature-item">
+            <span class="auth-feature-icon">📁</span>
+            <span>File & Image Sharing</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Login Panel -->
+      <div class="auth-right-panel">
+        <div class="card auth-card">
+          <div class="auth-logo">
+            <div class="auth-logo-icon">💬</div>
+            <span>UniqueChat</span>
+          </div>
+          <h1 class="auth-form-title">Welcome back!</h1>
+          <p class="auth-form-subtitle">Connect with your AI & Friends</p>
+          <form id="login-form">
+            <div class="input-group">
+              <label for="email">Email Address</label>
+              <input type="email" id="email" required placeholder="name@example.com">
+            </div>
+            <div class="input-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; border-radius: 16px;">
+              Sign In / Sign Up
+            </button>
+          </form>
+          <p class="auth-footer-note">By continuing, you agree to our Terms of Service</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Main App Section (Hidden by default) -->
+    <div id="main-section" class="app-layout hidden">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2 style="font-size: 1.25rem;">UniqueChat <span
+              style="font-size: 0.6rem; background: var(--primary); color: white; padding: 2px 6px; border-radius: 10px; vertical-align: middle;">
+            </span>
+          </h2>
+          <div style="display: flex; gap: 0.5rem;">
+            <button id="settings-btn" class="btn" style="padding: 0.5rem;"><i data-lucide="settings"
+                style="width: 18px;"></i></button>
+            <button id="logout-btn" class="btn" style="padding: 0.5rem;"><i data-lucide="log-out"
+                style="width: 18px;"></i></button>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div id="tab-chats" class="tab active">Chats</div>
+          <div id="tab-groups" class="tab">Groups</div>
+          <div id="tab-ai" class="tab">AI Assistant</div>
+          <div id="tab-friends" class="tab">Friends</div>
+        </div>
+
+        <div id="sidebar-content" style="flex: 1; overflow-y: auto;">
+          <!-- Friends list or Chat list will go here -->
+        </div>
+
+        <div class="sidebar-footer" style="padding: 1rem; border-top: 1px solid var(--border);">
+          <div id="user-profile-summary" style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+            <div id="user-avatar"
+              style="width: 40px; height: 40px; border-radius: 50%; background: var(--border); overflow: hidden;"></div>
+            <div>
+              <div id="user-name" style="font-weight: 600; font-size: 0.875rem;">Loading...</div>
+              <div id="user-handle" style="font-size: 0.75rem; color: var(--text-muted);">@username</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="chat-area">
+        <div id="chat-header" class="chat-header">
+          <button id="back-to-sidebar" class="btn mobile-only" style="padding: 0.5rem; margin-right: 0.5rem;">
+            <i data-lucide="arrow-left" style="width: 20px;"></i>
+          </button>
+          <div id="active-chat-avatar"
+            style="width: 40px; height: 40px; border-radius: 50%; background: var(--border);"></div>
+          <div>
+            <div id="active-chat-name" style="font-weight: 600;">Select a chat</div>
+            <div id="active-chat-status" style="font-size: 0.75rem; color: var(--text-muted);">...</div>
+          </div>
+          <div id="group-actions" class="hidden" style="margin-left: auto; display: flex; gap: 0.5rem;">
+            <button id="add-member-btn" class="btn btn-icon" title="Add Member">
+              <i data-lucide="plus" style="width: 20px;"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="messages" class="messages-container">
+          <!-- Messages will be injected here -->
+          <div class="empty-state" style="text-align: center; margin: auto; color: var(--text-muted);">
+            <h3>Welcome to UniqueChat</h3>
+            <p>Select a friend to start chatting or talk to the AI.</p>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <form id="chat-form">
+            <div id="file-upload-progress" class="file-upload-progress hidden">
+              <div class="upload-progress-inner">
+                <div class="upload-spinner"></div>
+                <span id="upload-progress-text">Uploading...</span>
+              </div>
+            </div>
+            <div class="chat-input-wrapper">
+              <input type="file" id="file-upload" accept="*/*" class="hidden">
+              <button type="button" id="file-btn" class="btn-icon" title="Send File">
+                <i data-lucide="paperclip" style="width: 20px;"></i>
+              </button>
+              <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+              <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem;">
+                <i data-lucide="send" style="width: 18px;"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  </div>
+  <!-- Profile Settings Modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content card">
+      <h3>Profile Settings</h3>
+      <form id="settings-form" style="margin-top: 1rem;">
+        <div class="input-group">
+          <label>Display Name</label>
+          <input type="text" id="edit-display-name">
+        </div>
+        <div class="input-group">
+          <label>Username</label>
+          <input type="text" id="edit-username">
+        </div>
+        <div class="input-group">
+          <label>Bio</label>
+          <input type="text" id="edit-bio">
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+          <button type="button" id="close-settings" class="btn"
+            style="flex: 1; border: 1px solid var(--border);">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create Group Modal -->
+  <div id="create-group-modal" class="modal hidden">
+    <div class="modal-content card">
+      <h3>Create New Group</h3>
+      <form id="create-group-form" style="margin-top: 1rem;">
+        <div class="input-group">
+          <label>Group Name</label>
+          <input type="text" id="group-name" required placeholder="Enter group name">
+        </div>
+        <div class="input-group">
+          <label>Description</label>
+          <input type="text" id="group-description" placeholder="What's this group about?">
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1;">Create Group</button>
+          <button type="button" id="close-create-group" class="btn"
+            style="flex: 1; border: 1px solid var(--border);">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Member Modal -->
+  <div id="add-member-modal" class="modal hidden">
+    <div class="modal-content card">
+      <h3>Add Member to Group</h3>
+      <div id="friends-to-add-list" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;">
+        <!-- Friends will be listed here with "Add" buttons -->
+      </div>
+      <div style="margin-top: 1rem;">
+        <button type="button" id="close-add-member" class="btn"
+          style="width: 100%; border: 1px solid var(--border);">Close</button>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
